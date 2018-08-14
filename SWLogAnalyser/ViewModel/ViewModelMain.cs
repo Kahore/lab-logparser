@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -41,12 +42,17 @@ namespace SWLogAnalyser.ViewModel
 		public ViewModelMain()
 		{
 			ReadableLogs = new ObservableCollection<ReadableLogViewModel>();
-
+			ReadableLogs.CollectionChanged += new NotifyCollectionChangedEventHandler(ReadableLogs_CollectionChanged);
 			pathToWatch = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\Export\";
 			logFile = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\log.txt";
 			RunWatch();
+			RefreshAll();
 		}
 
+		void ReadableLogs_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			NotifyPropertyChanged("ReadableLogs");
+		}
 		public void RunWatch()
 		{
 			var watcher = new FileSystemWatcher
@@ -95,7 +101,7 @@ namespace SWLogAnalyser.ViewModel
 
 							var list = JsonConvert.DeserializeObject<List<ReadableLogViewModel>>(json);
 
-							bool IsListContainsUserName = list.Any(x => x.UserName == _readableLog.UserName && x.DateTimeCorrectedAction== _readableLog.DateTimeCorrectedAction );
+							bool IsListContainsUserName = list.Any(x => x.UserName == _readableLog.UserName && x.DateTimeCorrectedAction == _readableLog.DateTimeCorrectedAction);
 							if (!IsListContainsUserName)
 							{
 								list.Add(new ReadableLogViewModel(_readableLog));
@@ -105,21 +111,15 @@ namespace SWLogAnalyser.ViewModel
 						}
 						ReadableLogs.Add(ReadableLog);
 
-
 						// Если достигнут конец файла, прерываем считывание.
 						if (temp == null) break;
-
-						// Пишем считанную строку в итоговую переменную.
-						
 					}
-				
 
 				myReader.Close();
 					myReader.Dispose();
 
 					StreamWriter myWriter = new StreamWriter(e.FullPath);
 
-	
 					//перед чтением необходимо вернуть указатель потока в нужное место, у меня - в начало файла.
 					//myWriter.Flush();
 					myWriter.Close();
@@ -154,6 +154,29 @@ namespace SWLogAnalyser.ViewModel
 				File.AppendAllText(logFile, FileText + ' ' + e.Name + ' ' + err.ToString());
 			}
 			Thread.Sleep(1000);
+		}
+		void RefreshAll()
+		{
+			ReadableLogs.Clear();
+			
+
+			var filePath = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\ReadableLog.json";
+			if (File.Exists(filePath))
+			{
+				using (StreamReader r = new StreamReader(filePath))
+				{
+					string jsonData = File.ReadAllText(filePath);
+
+					var list = JsonConvert.DeserializeObject<List<ReadableLogViewModel>>(jsonData);
+					var descListOb = list.OrderBy(x => x.Field).ThenBy(x => x.UserName).ThenBy(x => x.LabNo).ThenBy(x => x.DateTimeCorrectedAction);
+					descListOb.ToList().ForEach(ReadableLogs.Add);
+				}
+			}
+			else
+			{
+				var newTestOperator = "[{\"UserName\":\"TestUser\",\"Id\":\"" + Guid.NewGuid() + "\"}]";
+				File.WriteAllText(filePath, newTestOperator);
+			}
 		}
 	}
 }

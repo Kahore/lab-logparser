@@ -14,5 +14,50 @@
 	<Window.DataContext>
 		<vm:ViewModelMain />
 	</Window.DataContext>
-	<Grid />
+	<Grid>
+		<ListView
+			Grid.Row="1"
+			Margin="5,10,10,0"
+			ItemsSource="{Binding ReadableLogs}"
+			RenderTransformOrigin="0.5,0.5"
+			ScrollViewer.CanContentScroll="True"
+			ScrollViewer.VerticalScrollBarVisibility="Visible"
+			SelectedItem="{Binding ReadableLog}">
+			<ListView.View>
+				<GridView>
+					<GridViewColumn
+						Width="80"
+						DisplayMemberBinding="{Binding Field}"
+						Header="Поле" />
+					<GridViewColumn
+						Width="80"
+						DisplayMemberBinding="{Binding LabNo}"
+						Header="Лаб номер" />
+					<GridViewColumn
+						Width="80"
+						DisplayMemberBinding="{Binding OldValue}"
+						Header="Начальное значение" />
+					<GridViewColumn
+						Width="80"
+						DisplayMemberBinding="{Binding CorrectedValue}"
+						Header="Коррекция" />
+
+					<GridViewColumn
+						Width="250"
+						DisplayMemberBinding="{Binding UserName}"
+						Header="Имя" />
+
+					<GridViewColumn
+						Width="250"
+						DisplayMemberBinding="{Binding Method}"
+						Header="Метод" />
+					<GridViewColumn
+						Width="250"
+						DisplayMemberBinding="{Binding DateTimeCorrectedAction}"
+						Header="Когда" />
+				</GridView>
+			</ListView.View>
+
+		</ListView>
+	</Grid>
 </Controls:MetroWindow>
