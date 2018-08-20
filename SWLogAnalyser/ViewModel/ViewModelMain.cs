@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using System.Windows.Threading;
 /*================================================*/
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -35,20 +37,52 @@ namespace SWLogAnalyser.ViewModel
 				NotifyPropertyChanged("FileText");
 			}
 		}
+
+		public string ReadableLogNameJSON { get; set; }
+
 		public ObservableCollection<ReadableLogViewModel> ReadableLogs { get => _readableLogs; set { _readableLogs = value; NotifyPropertyChanged("ReadableLogs"); } }
 
 		public ReadableLogViewModel ReadableLog { get => _readableLog; set { _readableLog = value; NotifyPropertyChanged("ReadableLog"); } }
 
+		private AllJSONModelViewModel _allJSON;
+
+		private ObservableCollection<AllJSONModelViewModel> _allJSONs;
+
+		public ObservableCollection<AllJSONModelViewModel> AllJSONs { get => _allJSONs; set { _allJSONs = value; NotifyPropertyChanged("AllJSONs"); } }
+
+		public AllJSONModelViewModel AllJSON { get => _allJSON; set { _allJSON = value; NotifyPropertyChanged("AllJSON"); } }
+
 		public ViewModelMain()
 		{
 			ReadableLogs = new ObservableCollection<ReadableLogViewModel>();
+			AllJSONs = new ObservableCollection<AllJSONModelViewModel>();
 			ReadableLogs.CollectionChanged += new NotifyCollectionChangedEventHandler(ReadableLogs_CollectionChanged);
 			pathToWatch = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\Export\";
 			logFile = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\log.txt";
+			GetMeAllJSON();
 			RunWatch();
-			RefreshAll();
 		}
 
+		private void GetMeAllJSON()
+		{
+			var allFilenames = Directory.EnumerateFiles(Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\").Select(p => Path.GetFileName(p));
+
+			var candidates = allFilenames.Where(fn => Path.GetExtension(fn) == ".json")
+							 .Select(fn => Path.GetFileNameWithoutExtension(fn));
+			foreach (var item in candidates)
+			{
+				App.Current.Dispatcher.Invoke((Action)delegate // <--- HERE
+				{
+					bool IsListContainsUserName = AllJSONs.Any(x => x.JSONName == item);
+					if (!IsListContainsUserName)
+					{
+						AllJSON = new AllJSONModelViewModel(item);
+						AllJSONs.Add(AllJSON);
+					}
+				});	
+			}
+		}
+	
 		void ReadableLogs_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
 			NotifyPropertyChanged("ReadableLogs");
@@ -67,13 +101,14 @@ namespace SWLogAnalyser.ViewModel
 		}
 		private void OnChanged(object source, FileSystemEventArgs e)
 		{
-			Thread.Sleep(2000);
+			//Thread.Sleep(2000);
 			try
 			{
 				if (e.ChangeType == WatcherChangeTypes.Created)
 				{
-
+					ReadableLogNameJSON = e.Name.Substring(0,e.Name.Length-4);
 					StreamReader myReader = new StreamReader(e.FullPath, Encoding.GetEncoding(1251));
+					var filePath = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\" + ReadableLogNameJSON + ".json";
 					while (true)
 					{
 						// Читаем строку из файла во временную переменную.
@@ -81,22 +116,13 @@ namespace SWLogAnalyser.ViewModel
 						string[] words = temp.Split(';');
 						var lol = words[9];
 						ReadableLog = new ReadableLogViewModel(Guid.NewGuid(), words[6], words[3], words[7], words[8], words[1], words[9], words[0]);
-						//Guid id, string Field, string LabNo, string OldValue, string CorrectedValue, 
-						//string UserName, string Method, string DateTimeCorrectedAction
-						var filePath = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\ReadableLog.json";
 
 						if (!File.Exists(filePath))
 						{
 							var newTestOperator = "[{\"UserName\":\"TestUser\",\"Id\":\"" + Guid.NewGuid() + "\"}]";
 							File.WriteAllText(filePath, newTestOperator);
-							using (StreamWriter file = File.CreateText(filePath))
-							{
-								JsonSerializer serializer = new JsonSerializer();
-								serializer.Serialize(file, ReadableLog);
-							}
 						}
-						else
-						{
+
 							string json = File.ReadAllText(filePath);
 
 							var list = JsonConvert.DeserializeObject<List<ReadableLogViewModel>>(json);
@@ -108,22 +134,13 @@ namespace SWLogAnalyser.ViewModel
 								var convertedJson = JsonConvert.SerializeObject(list, Formatting.Indented);
 								File.WriteAllText(filePath, convertedJson);
 							}
-						}
-						ReadableLogs.Add(ReadableLog);
 
 						// Если достигнут конец файла, прерываем считывание.
 						if (temp == null) break;
 					}
 
-				myReader.Close();
+					myReader.Close();
 					myReader.Dispose();
-
-					StreamWriter myWriter = new StreamWriter(e.FullPath);
-
-					//перед чтением необходимо вернуть указатель потока в нужное место, у меня - в начало файла.
-					//myWriter.Flush();
-					myWriter.Close();
-					myWriter.Dispose();
 
 				//	File.Move(e.FullPath, dest + e.Name);
 
@@ -131,12 +148,12 @@ namespace SWLogAnalyser.ViewModel
 					GC.WaitForPendingFinalizers();
 					GC.Collect();
 				}
+			
 			}
 			catch (FileNotFoundException ex)
 			{
 				FileText = "File not found.";
 				File.AppendAllText(logFile, FileText + ' ' + e.Name + ' ' + ex.ToString());
-
 			}
 			catch (FileLoadException ex)
 			{
@@ -153,30 +170,44 @@ namespace SWLogAnalyser.ViewModel
 				FileText = err.Message;
 				File.AppendAllText(logFile, FileText + ' ' + e.Name + ' ' + err.ToString());
 			}
-			Thread.Sleep(1000);
+			finally
+			{
+				var filePath = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\" + ReadableLogNameJSON + ".json";	
+			}
+			GetMeAllJSON();
+
+			//	Thread.Sleep(1000);
 		}
-		void RefreshAll()
+
+		private ICommand _selectJSONCommand;
+		public ICommand SelectJSONCommand
 		{
-			ReadableLogs.Clear();
-			
-
-			var filePath = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\ReadableLog.json";
-			if (File.Exists(filePath))
+			get
 			{
-				using (StreamReader r = new StreamReader(filePath))
+				if (_selectJSONCommand == null)
 				{
-					string jsonData = File.ReadAllText(filePath);
-
-					var list = JsonConvert.DeserializeObject<List<ReadableLogViewModel>>(jsonData);
-					var descListOb = list.OrderBy(x => x.Field).ThenBy(x => x.UserName).ThenBy(x => x.LabNo).ThenBy(x => x.DateTimeCorrectedAction);
-					descListOb.ToList().ForEach(ReadableLogs.Add);
+					_selectJSONCommand = new ActionCommand(param => RefreshAll(AllJSON.JSONName),
+						null);
 				}
+				return _selectJSONCommand;
 			}
-			else
-			{
-				var newTestOperator = "[{\"UserName\":\"TestUser\",\"Id\":\"" + Guid.NewGuid() + "\"}]";
-				File.WriteAllText(filePath, newTestOperator);
-			}
+		}
+
+		void RefreshAll(string readableLogNameJSON)
+		{
+				ReadableLogs.Clear();
+				var filePath = Environment.GetEnvironmentVariable("UserProfile") + @"\LabOperatorSGS\"+readableLogNameJSON + ".json";
+				if (File.Exists(filePath))
+				{
+					using (StreamReader r = new StreamReader(filePath))
+					{
+						string jsonData = File.ReadAllText(filePath);
+
+						var list = JsonConvert.DeserializeObject<List<ReadableLogViewModel>>(jsonData);
+						var descListOb = list.OrderBy(x => x.Field).ThenBy(x => x.UserName).ThenBy(x => x.LabNo).ThenBy(x => x.DateTimeCorrectedAction);
+						descListOb.ToList().ForEach(ReadableLogs.Add);
+					}
+				}
 		}
 	}
 }

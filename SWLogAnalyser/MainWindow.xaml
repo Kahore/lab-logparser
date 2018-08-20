@@ -15,9 +15,41 @@
 		<vm:ViewModelMain />
 	</Window.DataContext>
 	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="80" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="30" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+		<Button
+			Grid.Row="0"
+			Grid.Column="0"
+			HorizontalAlignment="Right"
+			Command="{Binding SelectJSONCommand}"
+			Content="выбрать" />
+
 		<ListView
 			Grid.Row="1"
-			Margin="5,10,10,0"
+			Grid.Column="0"
+			Width="80"
+			ItemsSource="{Binding AllJSONs}"
+			SelectedItem="{Binding AllJSON, Mode=TwoWay}">
+
+			<ListView.View>
+				<GridView>
+					<GridViewColumn
+						Width="80"
+						DisplayMemberBinding="{Binding JSONName}"
+						Header="Файлы" />
+				</GridView>
+			</ListView.View>
+		</ListView>
+
+		<ListView
+			Grid.Row="1"
+			Grid.Column="1"
 			ItemsSource="{Binding ReadableLogs}"
 			RenderTransformOrigin="0.5,0.5"
 			ScrollViewer.CanContentScroll="True"
@@ -26,33 +58,33 @@
 			<ListView.View>
 				<GridView>
 					<GridViewColumn
-						Width="80"
+						Width="150"
 						DisplayMemberBinding="{Binding Field}"
 						Header="Поле" />
 					<GridViewColumn
-						Width="80"
+						Width="100"
 						DisplayMemberBinding="{Binding LabNo}"
 						Header="Лаб номер" />
 					<GridViewColumn
-						Width="80"
+						Width="150"
 						DisplayMemberBinding="{Binding OldValue}"
 						Header="Начальное значение" />
 					<GridViewColumn
-						Width="80"
+						Width="150"
 						DisplayMemberBinding="{Binding CorrectedValue}"
 						Header="Коррекция" />
 
 					<GridViewColumn
-						Width="250"
+						Width="150"
 						DisplayMemberBinding="{Binding UserName}"
 						Header="Имя" />
 
 					<GridViewColumn
-						Width="250"
+						Width="650"
 						DisplayMemberBinding="{Binding Method}"
 						Header="Метод" />
 					<GridViewColumn
-						Width="250"
+						Width="150"
 						DisplayMemberBinding="{Binding DateTimeCorrectedAction}"
 						Header="Когда" />
 				</GridView>

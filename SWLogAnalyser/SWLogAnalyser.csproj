@@ -67,6 +67,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\AllJSONModel.cs" />
+    <Compile Include="ViewModel\AllJSONModelViewModel.cs" />
     <Compile Include="ViewModel\ReadableLogViewModel.cs" />
     <Compile Include="ViewModel\ViewModelBase.cs" />
     <Compile Include="ViewModel\ViewModelMain.cs" />
