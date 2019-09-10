@@ -7,7 +7,7 @@
 	xmlns:local="clr-namespace:SWLogAnalyser"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:vm="clr-namespace:SWLogAnalyser.ViewModel"
-	Title="MainWindow"
+	Title="SimpleWeigth log analyser"
 	Width="800"
 	Height="450"
 	mc:Ignorable="d">
@@ -29,14 +29,16 @@
 			HorizontalAlignment="Right"
 			Command="{Binding SelectJSONCommand}"
 			Content="выбрать" />
-
 		<ListView
 			Grid.Row="1"
 			Grid.Column="0"
 			Width="80"
 			ItemsSource="{Binding AllJSONs}"
-			SelectedItem="{Binding AllJSON, Mode=TwoWay}">
-
+			SelectedItem="{Binding AllJSON, Mode=TwoWay}"
+			SelectionMode="Extended">
+			<!-- <CommandBinding Command="Cut" CanExecute="EditCmdCanExecute" Executed="CutExecuted"/>
+			<CommandBinding Command="Copy" CanExecute="EditCmdCanExecute" Executed="CopyExecuted"/>
+			<CommandBinding Command="Paste" CanExecute="PasteCanExecute" Executed="PasteExecuted"/>-->
 			<ListView.View>
 				<GridView>
 					<GridViewColumn
